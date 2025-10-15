@@ -1,37 +1,33 @@
-import os
+# === Importar librerías ===
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Crear las carpetas necesarias
-os.makedirs("files/output", exist_ok=True)
-os.makedirs("files/plots", exist_ok=True)
+# === Cargar los datos ===
+drivers = pd.read_csv("drivers.csv")
+timesheet = pd.read_csv("timesheet.csv")
 
-# --- Crear datos simulados de conductores ---
-data = {
-    "Driver": [
-        "Alice", "Bob", "Charlie", "David", "Eve",
-        "Frank", "Grace", "Heidi", "Ivan", "Judy",
-        "Ken", "Leo"
-    ],
-    "Miles": [1200, 2500, 3100, 2900, 1800, 2700, 3400, 2300, 4000, 3900, 3600, 4100]
-}
+# === 1. Calcular la suma de horas y millas por conductor ===
+sum_timesheet = timesheet.groupby("driverId")[["hours-logged", "miles-logged"]].sum().reset_index()
 
-df = pd.DataFrame(data)
+# === 2. Combinar con la tabla de conductores (solo driverId y name) ===
+summary = pd.merge(
+    sum_timesheet,
+    drivers[["driverId", "name"]],
+    on="driverId",
+    how="left"
+)
 
-# --- Crear summary.csv ---
-summary = df.describe()
-summary.to_csv("files/output/summary.csv")
+# === 3. Seleccionar los 10 conductores con más millas registradas ===
+top10 = summary.sort_values(by="miles-logged", ascending=False).head(10)
 
-# --- Crear top10_drivers.png ---
-top10 = df.sort_values(by="Miles", ascending=False).head(10)
-
-plt.figure(figsize=(8, 6))
-plt.barh(top10["Driver"], top10["Miles"], color="skyblue")
-plt.xlabel("Miles")
-plt.ylabel("Driver")
-plt.title("Top 10 Drivers by Miles")
-plt.gca().invert_yaxis()
+# === 4. Crear gráfico de barras horizontales ===
+plt.figure(figsize=(10, 6))
+plt.barh(top10["name"], top10["miles-logged"], color="skyblue")
+plt.xlabel("Millas registradas")
+plt.ylabel("Conductores")
+plt.title("Top 10 conductores con mayor cantidad de millas registradas")
+plt.gca().invert_yaxis()  # Pone al conductor con más millas arriba
 plt.tight_layout()
+plt.show()
 
-plt.savefig("files/plots/top10_drivers.png")
-plt.close()
+
